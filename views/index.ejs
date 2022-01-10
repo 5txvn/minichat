@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/socket"></script>
+    <script src="/platform"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <title>Minichat</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="icon" href="/icon" type="image/x-icon" />
+  </head>
+  <body>
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" href="#">Home</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/about">About</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/usage">Usage</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/user-information">User Information</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/site-information">Site Information</a>
+      </li>
+    </ul>
+    <div id="messages"></div>
+    <div class="form">
+      <input
+        type="text"
+        name="message"
+        id="message"
+        placeholder="Send Message Here"
+        autofocus
+        autocomplete="off"
+      />
+    </div>
+    <style>
+      .form {
+        bottom: 0;
+        margin-bottom: 3%;
+        margin-left: 3%;
+        position: fixed;
+        width: 100%;
+      }
+      input {
+        width: 95%;
+        border-color: black;
+        border-radius: 5px;
+      }
+      #messages {
+        overflow: auto;
+        height: 75%;
+        position: fixed;
+        width: 100%;
+        margin-left: 3%;
+        margin-top: 2%;
+      }
+      ::-webkit-scrollbar {
+        width: 0; /* Remove scrollbar space */
+        background: transparent; /* Optional: just make scrollbar invisible */
+      }
+    </style>
+    <script>
+    const messages = document.getElementById("messages")
+      const resetInput = () => $("#message").val("");
+      const scrollDown = () => messages.scrollTop = messages.scrollHeight;
+        //get the input
+      const input = document.getElementById("message");
+
+      //add an event listener to submit messages
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      });
+
+      var emojiData;
+
+      $.get('/emojis', async (data, status) => {
+        console.log(data)
+      })
+
+      //use socket.io to send messages
+      const socket = io();
+
+      //once socket.io recieves a message, it will send it to the client
+      socket.on("recieve", (message) => {
+        if (message.length > 2 && typeof message === "object") {
+          message.forEach((element) => {
+            $("#messages").append(`${element[0]}: <span class="text-secondary">${element[1]}</span><br>`)
+          });
+          scrollDown()
+        } else {
+            $("#messages").append(`${message[0]}: <span class="text-secondary">${message[1]}</span><br>`);
+            //const ringtone = new Audio("/ringtone")
+          //ringtone.play()
+          scrollDown()
+        }
+      });
+
+        //send message to server
+      function sendMessage() {
+        var message = $("#message").val();
+        //games and extra stuff
+        switch(message) {
+          case "/slope":
+            window.open("https://storage.y8.com/y8-studio/unity/joll/slope/?key=9757549&value=80527");
+            scrollDown();
+            break;
+          default:
+            null
+        }
+        if (message === "/version") {
+          $("#messages").append("Server: You are currently running Minichat v1.0.0")
+            resetInput();
+            scrollDown()
+        } 
+        else if (message.startsWith("/setname")) {
+          //check if cookies are enabled or not
+          if (navigator.cookieEnabled) {
+            //if cookies are enabled, set the name cookie
+          const name = message.split(" ")[1];
+          if (!name.includes(">") && !name.includes("<")) {
+          document.cookie = `name=${name}`;
+          resetInput()
+          }
+          document.getElementById("messages").innerHTML += "Server: You have changed your name to " + name + "<br>";
+          } else {
+            //if cookies are not enables, output error message
+            $("#messages").append("Server: You must enable cookies to change your name. Currently, you have cookies disabled, but you can learn how to enable them <a class='text-info' href='https://support.google.com/accounts/answer/61416?hl=en&co=GENIE.Platform%3DDesktop'>here</a><br>");
+            resetInput()
+          }
+          scrollDown()
+        }
+        else if (message === "/help") {
+            document.getElementById("messages").innerHTML += `Server: Available commands - /version, /setname, /help<br>/version: Outputs the current version of Minichat you are running<br>/setname: Sets your name to the name you specify, use like /setname <name><br>/help: Outputs the available commands and what they do`
+               resetInput()
+               scrollDown()
+        }
+        else if (message === "/os") {
+          $("#messages").append(`Server: You are currently running ${platform.os}<br>`);
+          resetInput()
+          scrollDown()
+        }
+        else {
+          $.get('/emojis', (data, status) => {
+            const keys = Object.keys(data)
+            keys.every(key => {
+              if (message.includes(key)) {
+                message = message.replace(key, data[key])
+                return false
+              }
+              return true
+            })
+            //parse the cookie string
+            const cookie =  document.cookie.split('; ').reduce((prev, current) => {
+    const [name, ...value] = current.split('=');
+    prev[name] = value.join('=');
+    return prev;
+  }, {});
+
+  //if the cookie is set, send the message with the name
+  if (cookie.name && !message.includes("<") && !message.includes(">")) {
+      socket.emit("send", [cookie.name, message]);
+      resetInput()
+  } 
+  //if the cookie is not set, send the message as anonymous
+  else if (!message.includes("<") && !message.includes(">")) {
+      socket.emit("send", ["Anonymous", message])
+      resetInput()
+  } 
+  else {
+    $("#messages").append("Server: <span class='text-danger'>Invalid message. You are not permitted to use html in your message.</span>")
+  }
+})
+        }
+      }
+      setTimeout(() => {
+        $("#messages").append('Server: Welcome to minichat <span class="text-secondary">v1.0.0</span>! For more information, type <span class="text-info">/help</span> in the chat.<br>')
+        scrollDown()
+      }, 500)
+    </script>
+  </body>
+</html>
