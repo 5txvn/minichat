@@ -56,6 +56,9 @@ app.get("/", (req, res) => {
   );
   res.render("index");
 });
+app.get('/:room', (req, res) => {
+    res.render('index');
+})
 //set the about page
 //execute when the user connects
 io.on("connection", (socket) => {
