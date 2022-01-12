@@ -36,16 +36,6 @@ socket.on("recieve", (message) => {
 function sendMessage() {
   var message = $("#message").val();
   //games and extra stuff
-  switch (message) {
-    case "/slope":
-      window.open(
-        "https://storage.y8.com/y8-studio/unity/joll/slope/?key=9757549&value=80527"
-      );
-      scrollDown();
-      break;
-    default:
-      null;
-  }
   if (message === "/version") {
     $("#messages").append("Server: You are currently running Minichat v1.0.0");
     resetInput();
@@ -81,7 +71,23 @@ function sendMessage() {
     );
     resetInput();
     scrollDown();
-  } else {
+  } 
+
+  //excess commands
+  else if (message.startsWith('/')) {
+    switch(message.replace("/", "")) {
+      case "repo":
+        window.open("https://github.com/exoticchild/minichat");
+        clearInput()
+        scrollDown();
+        break;
+      default:
+        null;
+    }
+  }
+
+  //send a normal message
+  else {
     $.get("/json/emojis.json", (data, status) => {
       const keys = Object.keys(data);
       keys.every((key) => {
