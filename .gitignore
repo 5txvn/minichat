@@ -1,5 +1,6 @@
 Procfile
-node_modules
+node_modules/
 package-lock.json
-logs
+logs/
 db/messages.stormdb
+db/logins.stormdb

@@ -51,6 +51,8 @@ function sendMessage() {
       }
       document.getElementById("messages").innerHTML +=
         "Server: You have changed your name to " + name + "<br>";
+
+        $.post("/submit-name/" + name)
     } else {
       //if cookies are not enables, output error message
       $("#messages").append(

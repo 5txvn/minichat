@@ -23,7 +23,6 @@ const messages = new StormDB(messagesEngine);
 messages.default({ messages: [["Server", "Welcome to Minichat!"],["Steven","Hey"],["Steven","Sup"]] });
 const loginsEngine = new StormDB.localFileEngine("./db/logins.stormdb");
 const logins = new StormDB(loginsEngine);
-logins.default({logins:[]})
 
 
 app.get("/", (req, res) => {
@@ -38,22 +37,45 @@ app.get("/", (req, res) => {
 app.post('/login', (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
-  const usernames = logins.state.usernames
-  const passwords = logins.state.passwords
-  const id = crypto.randomBytes(32).toString("hex");
+  const usernames = Object.keys(logins.state)
+  //const position = usernames.indexOf(username)
   if (usernames.includes(username)) {
-    if (usernames[usernames.indexOf(username)] == username && passwords[passwords.indexOf(password)] == password) {
-      const idInfo = eval(`logins.state.${id}`)
-      if(idInfo.name) {res.cookie("name", idInfo.name)}
-      res.cookie("id", id);
+    if (logins.state[username].password == password) {
+      console.log("login successful")
+      res.cookie("username", username)
+      res.cookie("password", password)
+      res.cookie("id", logins.state[username].id)
+      if (logins.state[username].name) {res.cookie("name", logins.state[username].name)}
+      //res.cookie("id", id);
       res.redirect("/");
     }
   }
   //res.redirect('/')
 })
 
-app.post('/signup')
+app.post('/signup', (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  const id = crypto.randomBytes(32).toString("hex");
+  res.cookie("username", username);
+  res.cookie("password", password);
+  res.cookie("admin", "false");
+  res.cookie("id", id);
+  logins.set(username, {})
+  .get(username)
+  .set("password", password)
+  .set("id", id)
+  logins.save()
+  res.redirect('/')
+})
 
+app.post("/submit-name/:name", (req, res) => {
+  const username = req.cookies.username
+  console.log(username)
+  logins.get(username)
+  .set("name", req.params.name)
+  logins.save()
+})
 
 io.on("connection", (socket) => {
 
@@ -67,9 +89,9 @@ io.on("connection", (socket) => {
       message[0] = filter.clean(message[0]);
       message[1] = filter.clean("placeholder " + message[1]).replace("placeholder ", "");
       //get the database and push the message
-      loadMessages.get("messages").push(message);
+      messages.get("messages").push(message);
       //save the database state
-      db.save();
+      messages.save();
       //make the frontend recieve the message
       io.emit("recieve", message);
     }
