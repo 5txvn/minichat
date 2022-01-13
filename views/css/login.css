@@ -7,10 +7,6 @@ form {
     position: absolute; 
 }
 */
-div {
-    transform: translate(50%, 50%);
-    position: auto;
-}
 
 input::placeholder {
     text-align: center;
